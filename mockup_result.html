@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>사인전에 — 결과 화면</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1A56DB;
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+
+  .phone-frame {
+    width: 390px;
+    background: #F2F4F6;
+    border-radius: 48px;
+    overflow: hidden;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(255,255,255,0.15);
+    border: 8px solid #1a1a1a;
+    position: relative;
+  }
+
+  /* 노치 */
+  .notch {
+    background: #1a1a1a;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .notch-pill {
+    width: 120px;
+    height: 20px;
+    background: #000;
+    border-radius: 12px;
+  }
+
+  /* 상태바 */
+  .status-bar {
+    background: #F2F4F6;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #191F28;
+  }
+
+  /* AI 고지 배너 */
+  .ai-banner {
+    background: #EBF3FF;
+    padding: 8px 16px;
+    text-align: center;
+    font-size: 12px;
+    color: #3182F6;
+    font-weight: 500;
+    border-bottom: 1px solid #D1E4FF;
+  }
+
+  .content { padding: 20px 16px; }
+
+  .page-title { font-size: 24px; font-weight: 800; color: #191F28; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: #6B7684; margin-bottom: 18px; }
+
+  /* 탭 */
+  .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab {
+    flex: 1; text-align: center; padding: 10px 4px;
+    border-radius: 10px; background: #fff;
+    border: 1px solid #E5E8EB; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab.active { background: #EBF3FF; border-color: #3182F6; }
+  .tab-icon { font-size: 20px; display: block; margin-bottom: 3px; }
+  .tab-label { font-size: 11px; color: #6B7684; }
+  .tab.active .tab-label { color: #3182F6; font-weight: 700; }
+
+  /* 카드 */
+  .card { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 12px; }
+
+  .s-row { padding: 10px 0; border-bottom: 1px solid #F2F4F6; }
+  .s-row:last-child { border-bottom: none; }
+  .s-label { font-size: 11px; color: #6B7684; margin-bottom: 3px; }
+  .s-value { font-size: 15px; color: #191F28; font-weight: 500; }
+
+  .sub-title { font-size: 13px; font-weight: 700; color: #191F28; margin: 14px 0 8px; }
+  .list-item { font-size: 13px; color: #333D4B; line-height: 22px; }
+
+  /* 패널 전환 */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* 위험 조항 */
+  .risk-item { padding: 12px 0; border-bottom: 1px solid #FFF5F5; }
+  .risk-item:last-child { border-bottom: none; }
+  .risk-title { font-size: 14px; font-weight: 700; color: #E53E3E; margin-bottom: 5px; }
+  .risk-desc { font-size: 13px; color: #4A5568; line-height: 20px; }
+
+  /* 체크리스트 */
+  .check-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; cursor: pointer; }
+  .check-box {
+    width: 22px; height: 22px; border-radius: 5px;
+    border: 2px solid #CBD5E0; flex-shrink: 0;
+    margin-top: 1px; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .check-box.done { background: #3182F6; border-color: #3182F6; }
+  .check-box.done::after { content: '✓'; color: #fff; font-size: 13px; font-weight: 700; }
+  .check-text { font-size: 13px; color: #333D4B; line-height: 22px; }
+  .check-text.done { color: #A0AEC0; text-decoration: line-through; }
+
+  .disclaimer {
+    font-size: 11px; color: #A0AEC0; text-align: center;
+    line-height: 17px; padding: 0 8px; margin-bottom: 14px;
+  }
+
+  .new-btn {
+    background: #3182F6; border-radius: 14px;
+    padding: 16px; text-align: center;
+    color: #fff; font-size: 16px; font-weight: 700;
+    margin-bottom: 10px; cursor: pointer;
+  }
+
+  /* 홈바 */
+  .home-bar {
+    background: #F2F4F6;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .home-pill { width: 120px; height: 5px; background: #C7CBD1; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>●●● 📶 🔋</span>
+  </div>
+
+  <div class="ai-banner">🤖 AI가 생성한 분석 결과입니다</div>
+
+  <div class="content">
+    <div class="page-title">분석 완료</div>
+    <div class="page-sub">아래 내용은 일반적인 참고 정보입니다.</div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(0, this)">
+        <span class="tab-icon">📋</span>
+        <span class="tab-label">핵심 요약</span>
+      </div>
+      <div class="tab" onclick="switchTab(1, this)">
+        <span class="tab-icon">⚠️</span>
+        <span class="tab-label">위험 조항</span>
+      </div>
+      <div class="tab" onclick="switchTab(2, this)">
+        <span class="tab-icon">✅</span>
+        <span class="tab-label">체크리스트</span>
+      </div>
+    </div>
+
+    <!-- 카드 ① 핵심 요약 -->
+    <div class="panel active" id="panel-0">
+      <div class="card">
+        <div class="s-row"><div class="s-label">임대기간</div><div class="s-value">2025년 3월 1일 ~ 2027년 2월 28일</div></div>
+        <div class="s-row"><div class="s-label">보증금</div><div class="s-value">1억 원</div></div>
+        <div class="s-row"><div class="s-label">월세</div><div class="s-value">없음 (전세)</div></div>
+        <div class="s-row"><div class="s-label">주소</div><div class="s-value">서울시 ** 구 *** 로 (마스킹 처리됨)</div></div>
+        <div class="sub-title">특약사항</div>
+        <div class="list-item">• 임대인의 동의 없이 전대 불가</div>
+        <div class="list-item">• 계약 만료 2개월 전 갱신 의사 통보 필요</div>
+        <div class="list-item">• 반려동물 사전 협의 후 가능</div>
+      </div>
+    </div>
+
+    <!-- 카드 ② 위험 조항 -->
+    <div class="panel" id="panel-1">
+      <div class="card">
+        <div class="risk-item">
+          <div class="risk-title">⚠️ 중도 해지 위약금 조항</div>
+          <div class="risk-desc">일반적으로 중도 해지 시 위약금 조건을 계약 전 명확히 확인하는 것이 좋습니다.</div>
+        </div>
+        <div class="risk-item">
+          <div class="risk-title">⚠️ 원상복구 범위 불명확</div>
+          <div class="risk-desc">퇴거 시 원상복구 범위가 모호하게 기재되어 있어 분쟁 가능성이 있습니다. 구체적인 항목 명시를 확인하세요.</div>
+        </div>
+        <div class="risk-item">
+          <div class="risk-title">⚠️ 관리비 항목 미기재</div>
+          <div class="risk-desc">관리비 포함 항목이 명시되지 않아 추가 비용이 발생할 수 있습니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 카드 ③ 체크리스트 -->
+    <div class="panel" id="panel-2">
+      <div class="card">
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <div class="check-text">등기부등본에서 근저당 설정 여부 확인</div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <div class="check-text">임대인과 등기부등본 소유자 일치 여부 확인</div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <div class="check-text">확정일자 및 전입신고 계획 수립</div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <div class="check-text">관리비 세부 항목 서면 확인 요청</div>
+        </div>
+        <div class="check-item" onclick="toggleCheck(this)">
+          <div class="check-box"></div>
+          <div class="check-text">원상복구 범위 구체적으로 특약에 추가</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">이 내용은 AI가 생성한 일반적인 정보입니다. 법률 조언이 아니며, 중요한 사항은 반드시 전문가와 상담하세요.</div>
+    <div class="new-btn">+ 새 계약서 분석하기</div>
+  </div>
+
+  <div class="home-bar"><div class="home-pill"></div></div>
+</div>
+
+<script>
+  function switchTab(idx, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-' + idx).classList.add('active');
+  }
+  function toggleCheck(el) {
+    const box = el.querySelector('.check-box');
+    const text = el.querySelector('.check-text');
+    box.classList.toggle('done');
+    text.classList.toggle('done');
+  }
+</script>
+</body>
+</html>

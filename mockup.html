@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>사인전에 — 썸네일 목업</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1A56DB;
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .layout {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 40px 80px;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+  }
+
+  /* 왼쪽 텍스트 영역 */
+  .hero {
+    flex: 0 0 360px;
+    color: #fff;
+  }
+  .hero-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    font-size: 14px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .hero-title {
+    font-size: 56px;
+    font-weight: 800;
+    line-height: 1.15;
+    margin-bottom: 16px;
+  }
+  .hero-sub {
+    font-size: 18px;
+    line-height: 1.6;
+    opacity: 0.85;
+    margin-bottom: 28px;
+  }
+  .hero-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 20px;
+  }
+
+  /* 폰 3개 */
+  .phones {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .phone-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .phone-label {
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+    font-weight: 500;
+  }
+
+  .phone {
+    width: 210px;
+    height: 440px;
+    background: #F2F4F6;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    border: 3px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+  }
+  .phone.center {
+    width: 230px;
+    height: 480px;
+    box-shadow: 0 24px 70px rgba(0,0,0,0.45);
+    border-color: rgba(255,255,255,0.3);
+  }
+
+  /* 공통 상단바 */
+  .status-bar {
+    background: #fff;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 12px;
+    font-size: 10px;
+    color: #333;
+  }
+
+  /* ── 화면 1: 동의 ── */
+  .screen-consent { background: #F2F4F6; padding: 16px 14px; height: 100%; }
+  .consent-title { font-size: 15px; font-weight: 700; color: #191F28; margin-bottom: 4px; }
+  .consent-sub { font-size: 10px; color: #6B7684; margin-bottom: 14px; }
+  .consent-card { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .consent-row { padding: 6px 0; border-bottom: 1px solid #F2F4F6; }
+  .consent-row:last-child { border-bottom: none; }
+  .c-label { font-size: 9px; color: #6B7684; }
+  .c-value { font-size: 10px; color: #191F28; margin-top: 1px; }
+  .consent-btn {
+    background: #C7CBD1; border-radius: 8px;
+    padding: 10px; text-align: center;
+    color: #fff; font-size: 11px; font-weight: 700;
+    margin-top: 8px;
+  }
+  .check-row { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+  .check-box-s { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid #C7CBD1; }
+
+  /* ── 화면 2: 촬영 ── */
+  .screen-camera { background: #F2F4F6; padding: 16px 14px; height: 100%; display: flex; flex-direction: column; justify-content: center; }
+  .camera-title { font-size: 16px; font-weight: 700; color: #191F28; margin-bottom: 6px; }
+  .camera-sub { font-size: 10px; color: #6B7684; line-height: 16px; margin-bottom: 28px; }
+  .camera-btn-main {
+    background: #3182F6; border-radius: 10px;
+    padding: 16px 10px; text-align: center; margin-bottom: 10px;
+  }
+  .camera-btn-icon { font-size: 28px; }
+  .camera-btn-text { color: #fff; font-size: 12px; font-weight: 700; margin-top: 4px; }
+  .camera-btn-sub {
+    background: #fff; border-radius: 10px;
+    padding: 12px; text-align: center;
+    color: #3182F6; font-size: 11px; font-weight: 600;
+    border: 1px solid #E5E8EB;
+  }
+
+  /* ── 화면 3: 결과 ── */
+  .ai-banner { background: #EBF3FF; padding: 5px; text-align: center; font-size: 9px; color: #3182F6; }
+  .screen-result { background: #F2F4F6; padding: 12px; }
+  .result-title { font-size: 15px; font-weight: 700; color: #191F28; margin-bottom: 2px; }
+  .result-sub { font-size: 9px; color: #6B7684; margin-bottom: 10px; }
+  .tabs-s { display: flex; gap: 5px; margin-bottom: 8px; }
+  .tab-s {
+    flex: 1; text-align: center; padding: 6px 2px;
+    border-radius: 7px; background: #fff;
+    border: 1px solid #E5E8EB; font-size: 8px; color: #6B7684;
+  }
+  .tab-s.active { background: #EBF3FF; border-color: #3182F6; color: #3182F6; font-weight: 700; }
+  .tab-icon-s { font-size: 13px; display: block; margin-bottom: 1px; }
+  .card-s { background: #fff; border-radius: 8px; padding: 10px; }
+  .s-row { padding: 5px 0; border-bottom: 1px solid #F2F4F6; }
+  .s-row:last-child { border-bottom: none; }
+  .s-label { font-size: 8px; color: #6B7684; }
+  .s-value { font-size: 10px; color: #191F28; }
+  .s-subtit { font-size: 9px; font-weight: 600; color: #191F28; margin: 8px 0 4px; }
+  .s-item { font-size: 9px; color: #333D4B; line-height: 14px; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- 왼쪽 히어로 텍스트 -->
+  <div class="hero">
+    <div class="hero-tag">토스 미니앱</div>
+    <div class="hero-title">사인전에</div>
+    <div class="hero-sub">계약서 사진 한 장으로<br>핵심 조항 바로 확인</div>
+    <div class="hero-badges">
+      <div class="badge">📋 핵심 요약</div>
+      <div class="badge">⚠️ 위험 조항</div>
+      <div class="badge">✅ 체크리스트</div>
+    </div>
+  </div>
+
+  <!-- 폰 3개 -->
+  <div class="phones">
+
+    <!-- 폰 1: 동의 화면 -->
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="status-bar">9:41</div>
+        <div class="screen-consent">
+          <div class="consent-title">개인정보 국외이전 동의</div>
+          <div class="consent-sub">서비스 이용을 위해 확인해 주세요.</div>
+          <div class="consent-card">
+            <div class="consent-row"><div class="c-label">이전 항목</div><div class="c-value">계약서 이미지 (분석 후 즉시 삭제)</div></div>
+            <div class="consent-row"><div class="c-label">이전 국가</div><div class="c-value">미국 (Anthropic)</div></div>
+            <div class="consent-row"><div class="c-label">보존 기간</div><div class="c-value">분석 완료 후 즉시 삭제</div></div>
+          </div>
+          <div class="check-row">
+            <div class="check-box-s"></div>
+            <div style="font-size:9px;color:#191F28;">위 내용을 확인하고 동의합니다.</div>
+          </div>
+          <div class="consent-btn">동의하고 시작하기</div>
+        </div>
+      </div>
+      <div class="phone-label">① 동의</div>
+    </div>
+
+    <!-- 폰 2: 촬영 화면 (중앙 강조) -->
+    <div class="phone-wrap">
+      <div class="phone center">
+        <div class="status-bar">9:41</div>
+        <div class="screen-camera">
+          <div class="camera-title">계약서를 촬영해주세요</div>
+          <div class="camera-sub">계약서 전체가 잘 보이도록<br>밝은 곳에서 촬영하세요.<br>주민번호·계좌번호는 자동으로 보호됩니다.</div>
+          <div class="camera-btn-main">
+            <div class="camera-btn-icon">📷</div>
+            <div class="camera-btn-text">카메라로 촬영</div>
+          </div>
+          <div class="camera-btn-sub">갤러리에서 선택</div>
+        </div>
+      </div>
+      <div class="phone-label">② 촬영</div>
+    </div>
+
+    <!-- 폰 3: 결과 화면 -->
+    <div class="phone-wrap">
+      <div class="phone">
+        <div class="status-bar">9:41</div>
+        <div class="ai-banner">🤖 AI가 생성한 분석 결과입니다</div>
+        <div class="screen-result">
+          <div class="result-title">분석 완료</div>
+          <div class="result-sub">아래 내용은 일반적인 참고 정보입니다.</div>
+          <div class="tabs-s">
+            <div class="tab-s active"><span class="tab-icon-s">📋</span>핵심 요약</div>
+            <div class="tab-s"><span class="tab-icon-s">⚠️</span>위험 조항</div>
+            <div class="tab-s"><span class="tab-icon-s">✅</span>체크</div>
+          </div>
+          <div class="card-s">
+            <div class="s-row"><div class="s-label">임대기간</div><div class="s-value">2025.3.1 ~ 2027.2.28</div></div>
+            <div class="s-row"><div class="s-label">보증금</div><div class="s-value">1억 원</div></div>
+            <div class="s-row"><div class="s-label">월세</div><div class="s-value">없음 (전세)</div></div>
+            <div class="s-row"><div class="s-label">주소</div><div class="s-value">서울시 ** 구 *** 로</div></div>
+            <div class="s-subtit">특약사항</div>
+            <div class="s-item">• 임대인 동의 없이 전대 불가</div>
+            <div class="s-item">• 만료 2개월 전 갱신 의사 통보</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">③ 결과</div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "appName": "sign-before",
+  "permissions": [
+    {
+      "name": "camera",
+      "access": "access"
+    },
+    {
+      "name": "photos",
+      "access": "read"
+    }
+  ]
+}

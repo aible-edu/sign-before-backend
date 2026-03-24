@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>사인전에 — 콘솔 썸네일</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 1080px;
+    height: 1920px;
+    overflow: hidden;
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+  }
+
+  body {
+    background: linear-gradient(160deg, #0D3FBF 0%, #1A6EFF 50%, #0BA3E8 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 72px 60px 64px;
+  }
+
+  /* ── 상단 헤드라인 ── */
+  .headline {
+    width: 100%;
+    text-align: center;
+    flex-shrink: 0;
+    margin-bottom: 56px;
+  }
+  .tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #fff;
+    font-size: 26px;
+    font-weight: 600;
+    padding: 8px 26px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+    letter-spacing: 0.03em;
+  }
+  .title {
+    font-size: 96px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.0;
+    letter-spacing: -0.03em;
+    margin-bottom: 18px;
+  }
+  .subtitle {
+    font-size: 34px;
+    color: rgba(255,255,255,0.80);
+    font-weight: 400;
+    line-height: 1.55;
+  }
+
+  /* ── 폰 + 화살표 영역 ── */
+  .flow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  .phone-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* STEP 번호 */
+  .step-tag {
+    font-size: 20px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.12em;
+    margin-bottom: 12px;
+  }
+
+  /* 폰 프레임 */
+  .phone {
+    width: 256px;
+    height: 560px;
+    background: #F2F4F6;
+    border-radius: 40px;
+    overflow: hidden;
+    box-shadow: 0 28px 72px rgba(0,0,0,0.45);
+    border: 5px solid #1a1a1a;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 노치 */
+  .notch {
+    background: #1a1a1a;
+    height: 26px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .notch-pill { width: 80px; height: 15px; background: #000; border-radius: 9px; }
+
+  /* 상태바 */
+  .sbar {
+    background: #F2F4F6;
+    height: 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px;
+    font-size: 9px; font-weight: 600; color: #191F28;
+  }
+
+  /* 홈바 */
+  .hbar {
+    background: #F2F4F6; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hpill { width: 72px; height: 4px; background: #C7CBD1; border-radius: 3px; }
+
+  /* 단계 설명 */
+  .step-desc {
+    margin-top: 20px;
+    text-align: center;
+    width: 256px;
+  }
+  .step-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 8px;
+  }
+  .step-body {
+    font-size: 20px;
+    color: rgba(255,255,255,0.70);
+    line-height: 1.55;
+    word-break: keep-all;
+  }
+
+  /* 화살표 */
+  .arrow {
+    font-size: 44px;
+    color: rgba(255,255,255,0.40);
+    margin: 0 8px;
+    flex-shrink: 0;
+    margin-top: 260px; /* 폰 중앙(560/2 + step-tag 높이) */
+  }
+
+  /* ━━━ 화면 1: CameraScreen ━━━ */
+  .scr-cam {
+    background: #F2F4F6;
+    display: flex; flex-direction: column;
+    flex: 1;
+  }
+  .top-sec {
+    padding: 16px 14px 10px;
+    border-bottom: 1px solid #E5E8EB;
+  }
+  .sec-label { font-size: 10px; color: #6B7684; margin-bottom: 10px; }
+  .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .type-chip {
+    background: #fff; border-radius: 12px;
+    padding: 10px 6px; text-align: center;
+    border: 1.5px solid #E5E8EB;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    aspect-ratio: 1;
+    justify-content: center;
+  }
+  .type-chip.sel { border-color: #3182F6; background: #EBF3FF; }
+  .type-icon { font-size: 20px; }
+  .type-name { font-size: 10px; color: #6B7684; }
+  .type-chip.sel .type-name { color: #3182F6; font-weight: 700; }
+  .bot-sec {
+    flex: 1; padding: 14px 14px 14px;
+    display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .pg-title  { font-size: 16px; font-weight: 800; color: #191F28; margin-bottom: 5px; }
+  .pg-sub    { font-size: 9px; color: #6B7684; line-height: 14px; margin-bottom: 14px; }
+  .btn-main {
+    background: #3182F6; border-radius: 10px;
+    padding: 11px; text-align: center;
+    color: #fff; font-size: 11px; font-weight: 700;
+    margin-bottom: 7px;
+  }
+  .btn-sub {
+    background: #fff; border-radius: 10px;
+    padding: 10px; text-align: center;
+    color: #3182F6; font-size: 11px; font-weight: 600;
+    border: 1px solid #D1E4FF; margin-bottom: 10px;
+  }
+  .tip { font-size: 8px; color: #B0B8C1; text-align: center; }
+
+  /* ━━━ 화면 2: LoadingScreen ━━━ */
+  .scr-load {
+    background: #F2F4F6;
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    position: relative;
+  }
+  .loader-ring {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    border: 5px solid #E5E8EB;
+    border-top-color: #3182F6;
+    margin-bottom: 20px;
+  }
+  .load-title { font-size: 16px; font-weight: 800; color: #191F28; margin-bottom: 8px; text-align: center; }
+  .load-step  { font-size: 10px; color: #6B7684; text-align: center; line-height: 15px; margin-bottom: 6px; }
+  .load-steps { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+  .load-step-item {
+    font-size: 9px; color: #B0B8C1; text-align: center;
+    padding: 3px 0;
+  }
+  .load-step-item.active { color: #3182F6; font-weight: 600; }
+  .load-notice {
+    position: absolute; bottom: 20px;
+    font-size: 8px; color: #B0B8C1; text-align: center;
+  }
+
+  /* ━━━ 화면 3: ResultScreen ━━━ */
+  .ai-banner {
+    background: #EBF3FF; padding: 5px 8px;
+    text-align: center; font-size: 8px; color: #3182F6; font-weight: 500;
+    border-bottom: 1px solid #D1E4FF;
+  }
+  .scr-res {
+    background: #F2F4F6; padding: 11px 10px;
+    flex: 1; overflow: hidden;
+  }
+  .res-title { font-size: 17px; font-weight: 800; color: #191F28; margin-bottom: 2px; }
+  .res-sub   { font-size: 8px; color: #6B7684; margin-bottom: 8px; }
+  .tabs { display: flex; gap: 5px; margin-bottom: 8px; }
+  .tab {
+    flex: 1; text-align: center; padding: 6px 2px;
+    border-radius: 9px; background: #fff;
+    border: 1px solid #E5E8EB;
+  }
+  .tab.act { background: #EBF3FF; border-color: #3182F6; }
+  .tab-ico { font-size: 13px; display: block; margin-bottom: 2px; }
+  .tab-lbl { font-size: 7px; color: #6B7684; }
+  .tab.act .tab-lbl { color: #3182F6; font-weight: 700; }
+  .card { background: #fff; border-radius: 11px; padding: 10px; }
+  .row { padding: 6px 0; border-bottom: 1px solid #F2F4F6; }
+  .row:last-child { border-bottom: none; }
+  .lbl { font-size: 8px; color: #6B7684; margin-bottom: 2px; }
+  .val { font-size: 11px; color: #191F28; font-weight: 500; }
+  .sub-t { font-size: 9px; font-weight: 700; color: #191F28; margin: 8px 0 4px; }
+  .li    { font-size: 8px; color: #333D4B; line-height: 13px; }
+
+  /* ── 하단 배지 ── */
+  .badges {
+    display: flex; gap: 16px;
+    margin-top: 52px; flex-wrap: wrap;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .badge {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28);
+    color: #fff; font-size: 25px; font-weight: 500;
+    padding: 11px 26px; border-radius: 100px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 헤드라인 -->
+  <div class="headline">
+    <div class="tag">토스 미니앱 · 무료</div>
+    <div class="title">사인전에</div>
+    <div class="subtitle">계약서 사진 한 장으로<br>핵심 조항 바로 확인</div>
+  </div>
+
+  <!-- 순차 플로우 -->
+  <div class="flow">
+
+    <!-- ① 촬영 화면 -->
+    <div class="phone-unit">
+      <div class="step-tag">STEP 01</div>
+      <div class="phone">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="sbar"><span>9:41</span><span>●●● 🔋</span></div>
+        <div class="scr-cam">
+          <!-- 상단: 계약서 종류 선택 -->
+          <div class="top-sec">
+            <div class="sec-label">계약서 종류</div>
+            <div class="type-grid">
+              <div class="type-chip sel">
+                <span class="type-icon">🏠</span>
+                <span class="type-name">임대차</span>
+              </div>
+              <div class="type-chip">
+                <span class="type-icon">💼</span>
+                <span class="type-name">근로</span>
+              </div>
+              <div class="type-chip">
+                <span class="type-icon">💻</span>
+                <span class="type-name">프리랜서</span>
+              </div>
+              <div class="type-chip">
+                <span class="type-icon">📄</span>
+                <span class="type-name">기타</span>
+              </div>
+            </div>
+          </div>
+          <!-- 하단: 촬영 버튼 -->
+          <div class="bot-sec">
+            <div class="pg-title">계약서를 촬영해요</div>
+            <div class="pg-sub">전체가 잘 보이도록 밝은 곳에서 촬영해요.<br>주민번호·계좌번호는 자동으로 가려져요.</div>
+            <div class="btn-main">📷  카메라로 촬영</div>
+            <div class="btn-sub">갤러리에서 선택</div>
+            <div class="tip">💡 계약서가 선명할수록 분석이 더 정확해져요.</div>
+          </div>
+        </div>
+        <div class="hbar"><div class="hpill"></div></div>
+      </div>
+      <div class="step-desc">
+        <div class="step-title">계약서 촬영</div>
+        <div class="step-body">종류를 고르고<br>카메라로 사진을 찍거나<br>갤러리에서 불러와요</div>
+
+      </div>
+    </div>
+
+    <!-- 화살표 -->
+    <div class="arrow">›</div>
+
+    <!-- ② 분석 중 화면 -->
+    <div class="phone-unit">
+      <div class="step-tag">STEP 02</div>
+      <div class="phone">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="sbar"><span>9:41</span><span>●●● 🔋</span></div>
+        <div class="scr-load">
+          <div class="loader-ring"></div>
+          <div class="load-title">AI가 분석하고 있어요</div>
+          <div class="load-step">핵심 조항을 분석하고 있어요</div>
+          <div class="load-notice">AI 활용 서비스 · 법률 조언이 아니에요</div>
+        </div>
+        <div class="hbar"><div class="hpill"></div></div>
+      </div>
+      <div class="step-desc">
+        <div class="step-title">AI 분석</div>
+        <div class="step-body">AI가 계약서를 읽고<br>핵심 내용을 자동으로<br>분석해요 (약 10~20초)</div>
+      </div>
+    </div>
+
+    <!-- 화살표 -->
+    <div class="arrow">›</div>
+
+    <!-- ③ 결과 화면 -->
+    <div class="phone-unit">
+      <div class="step-tag">STEP 03</div>
+      <div class="phone">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="sbar"><span>9:41</span><span>●●● 🔋</span></div>
+        <div class="ai-banner">🤖 AI가 생성한 분석 결과입니다</div>
+        <div class="scr-res">
+          <div class="res-title">분석 완료</div>
+          <div class="res-sub">아래 내용은 일반적인 참고 정보입니다.</div>
+          <div class="tabs">
+            <div class="tab act"><span class="tab-ico">📋</span><span class="tab-lbl">핵심 요약</span></div>
+            <div class="tab"><span class="tab-ico">⚠️</span><span class="tab-lbl">위험 조항</span></div>
+            <div class="tab"><span class="tab-ico">✅</span><span class="tab-lbl">체크리스트</span></div>
+          </div>
+          <div class="card">
+            <div class="row"><div class="lbl">임대기간</div><div class="val">2025.3.1 ~ 2027.2.28</div></div>
+            <div class="row"><div class="lbl">보증금</div><div class="val">1억 원</div></div>
+            <div class="row"><div class="lbl">월세</div><div class="val">없음 (전세)</div></div>
+            <div class="row"><div class="lbl">주소</div><div class="val">서울시 ** 구 *** 로</div></div>
+            <div class="sub-t">특약사항</div>
+            <div class="li">• 임대인 동의 없이 전대 불가</div>
+            <div class="li">• 만료 2개월 전 갱신 의사 통보</div>
+          </div>
+        </div>
+        <div class="hbar"><div class="hpill"></div></div>
+      </div>
+      <div class="step-desc">
+        <div class="step-title">결과 확인</div>
+        <div class="step-body">핵심 요약·위험 조항·체크리스트를<br>탭 하나씩 확인하고<br>계약 전에 꼼꼼히 검토해요</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 하단 배지 -->
+  <div class="badges">
+    <div class="badge">📋 핵심 요약</div>
+    <div class="badge">⚠️ 위험 조항 감지</div>
+    <div class="badge">✅ 체크리스트</div>
+    <div class="badge">🔒 개인정보 자동 보호</div>
+  </div>
+
+</body>
+</html>

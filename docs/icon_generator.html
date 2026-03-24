@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>사인전에 아이콘 생성기</title>
+<style>
+  body { background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; font-family: -apple-system, sans-serif; gap: 32px; }
+  h2 { color: #fff; margin: 0; font-size: 18px; }
+  .row { display: flex; gap: 40px; align-items: flex-start; }
+  .item { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  canvas { box-shadow: 0 24px 64px rgba(0,0,0,0.7); }
+  button { background: #3182F6; color: white; border: none; padding: 10px 24px; border-radius: 10px; font-size: 14px; cursor: pointer; font-weight: 600; width: 100%; }
+  button:hover { background: #1B64DA; }
+  .label { color: #aaa; font-size: 13px; }
+</style>
+</head>
+<body>
+<h2>사인전에 앱 아이콘</h2>
+<div class="row">
+  <div class="item">
+    <canvas id="light" width="600" height="600"></canvas>
+    <div class="label">라이트 모드</div>
+    <button onclick="save('light')">PNG 저장</button>
+  </div>
+  <div class="item">
+    <canvas id="dark" width="600" height="600"></canvas>
+    <div class="label">다크 모드</div>
+    <button onclick="save('dark')">PNG 저장</button>
+  </div>
+</div>
+
+<script>
+function drawIcon(canvasId, isDark) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const S = 600;
+  ctx.clearRect(0, 0, S, S);
+
+  // ── 배경 clip (rounded square) ──
+  function roundedSquare(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+  }
+
+  ctx.save();
+
+  // 배경
+  const bg = ctx.createLinearGradient(0, 0, S, S);
+  if (isDark) {
+    bg.addColorStop(0, '#141428');
+    bg.addColorStop(1, '#0A0A1A');
+  } else {
+    bg.addColorStop(0, '#1B64DA');
+    bg.addColorStop(0.5, '#3182F6');
+    bg.addColorStop(1, '#2563EB');
+  }
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, S, S);
+
+  // 배경 상단 빛
+  const bgShine = ctx.createRadialGradient(S*0.3, S*0.15, 0, S*0.3, S*0.15, S*0.7);
+  bgShine.addColorStop(0, 'rgba(255,255,255,0.15)');
+  bgShine.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = bgShine;
+  ctx.fillRect(0, 0, S, S);
+
+  // ══════════════════════════════
+  // 1. 뒤 문서 (살짝 기울어짐)
+  // ══════════════════════════════
+  ctx.save();
+  ctx.translate(S * 0.5, S * 0.46);
+  ctx.rotate(-0.12); // 살짝 왼쪽으로 기울임
+
+  const dw = S * 0.46;
+  const dh = S * 0.58;
+  const dx = -dw / 2;
+  const dy = -dh / 2;
+  const dr = S * 0.045;
+
+  // 문서 그림자
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.5)';
+  ctx.shadowBlur = 40;
+  ctx.shadowOffsetX = 12;
+  ctx.shadowOffsetY = 18;
+  roundedSquare(ctx, dx, dy, dw, dh, dr);
+  ctx.fillStyle = 'rgba(0,0,0,0.01)';
+  ctx.fill();
+  ctx.restore();
+
+  // 문서 본체
+  const docGrad = ctx.createLinearGradient(dx, dy, dx + dw, dy + dh);
+  if (isDark) {
+    docGrad.addColorStop(0, '#2A3A6E');
+    docGrad.addColorStop(1, '#1A2550');
+  } else {
+    docGrad.addColorStop(0, 'rgba(255,255,255,0.92)');
+    docGrad.addColorStop(1, 'rgba(210,228,255,0.88)');
+  }
+  roundedSquare(ctx, dx, dy, dw, dh, dr);
+  ctx.fillStyle = docGrad;
+  ctx.fill();
+
+  // 문서 테두리
+  roundedSquare(ctx, dx, dy, dw, dh, dr);
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.7)';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+
+  // 문서 선 (텍스트 줄 표현)
+  const lineColor = isDark ? 'rgba(100,140,255,0.35)' : 'rgba(49,130,246,0.2)';
+  const lineStartX = dx + dw * 0.14;
+  const lineEndX   = dx + dw * 0.86;
+  const lineGap    = dh * 0.115;
+  const lineStartY = dy + dh * 0.26;
+  for (let i = 0; i < 4; i++) {
+    ctx.beginPath();
+    ctx.moveTo(lineStartX, lineStartY + i * lineGap);
+    // 마지막 줄은 짧게
+    const endX = i === 3 ? lineStartX + (lineEndX - lineStartX) * 0.55 : lineEndX;
+    ctx.lineTo(endX, lineStartY + i * lineGap);
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = i === 0 ? 14 : 9;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // 문서 상단 접힌 모서리 (dog-ear)
+  const foldSize = dw * 0.16;
+  ctx.beginPath();
+  ctx.moveTo(dx + dw - foldSize, dy);
+  ctx.lineTo(dx + dw, dy + foldSize);
+  ctx.lineTo(dx + dw - foldSize, dy + foldSize);
+  ctx.closePath();
+  ctx.fillStyle = isDark ? 'rgba(49,130,246,0.4)' : 'rgba(49,130,246,0.18)';
+  ctx.fill();
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.restore(); // 문서 rotate 해제
+
+  // ══════════════════════════════
+  // 2. 앞 방패 (문서 우측 하단 모서리)
+  // ══════════════════════════════
+  const cx = S * 0.68;
+  const sy = S * 0.54;
+  const sw = S * 0.32;
+  const sh = S * 0.35;
+
+  ctx.save();
+  ctx.translate(cx, sy);
+
+  function shieldPath(ctx, w, h, ox, oy) {
+    const hw = w / 2;
+    ctx.beginPath();
+    ctx.moveTo(-hw + ox, oy);
+    ctx.lineTo(hw + ox, oy);
+    ctx.lineTo(hw + ox, h * 0.5 + oy);
+    ctx.bezierCurveTo(hw + ox, h * 0.78 + oy, ox, h + oy, ox, h + oy);
+    ctx.bezierCurveTo(-hw + ox, h * 0.78 + oy, -hw + ox, h * 0.5 + oy, -hw + ox, h * 0.5 + oy);
+    ctx.closePath();
+  }
+
+  // 방패 그림자
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = 50;
+  ctx.shadowOffsetX = -8;
+  ctx.shadowOffsetY = 20;
+  shieldPath(ctx, sw, sh, 0, 0);
+  ctx.fillStyle = 'rgba(0,0,0,0.01)';
+  ctx.fill();
+  ctx.restore();
+
+  // 방패 본체 그라디언트
+  const shieldGrad = ctx.createLinearGradient(-sw*0.5, 0, sw*0.5, sh);
+  if (isDark) {
+    shieldGrad.addColorStop(0,   '#5AA8FF');
+    shieldGrad.addColorStop(0.35,'#3182F6');
+    shieldGrad.addColorStop(0.75,'#1B64DA');
+    shieldGrad.addColorStop(1,   '#1050B0');
+  } else {
+    shieldGrad.addColorStop(0,   '#FFFFFF');
+    shieldGrad.addColorStop(0.3, '#EBF3FF');
+    shieldGrad.addColorStop(0.7, '#C2D9FF');
+    shieldGrad.addColorStop(1,   '#99BFFF');
+  }
+  shieldPath(ctx, sw, sh, 0, 0);
+  ctx.fillStyle = shieldGrad;
+  ctx.fill();
+
+  // 방패 테두리
+  shieldPath(ctx, sw, sh, 0, 0);
+  ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.8)';
+  ctx.lineWidth = 7;
+  ctx.stroke();
+
+  // 방패 왼쪽 상단 하이라이트
+  const hlGrad = ctx.createLinearGradient(-sw*0.38, sh*0.04, sw*0.05, sh*0.48);
+  hlGrad.addColorStop(0, 'rgba(255,255,255,0.32)');
+  hlGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  shieldPath(ctx, sw * 0.52, sh * 0.48, -sw * 0.09, sh * 0.06);
+  ctx.fillStyle = hlGrad;
+  ctx.fill();
+
+  ctx.restore(); // translate 해제
+
+  // ══════════════════════════════
+  // 3. 체크마크
+  // ══════════════════════════════
+  const checkCX = cx;
+  const checkCY = sy + sh * 0.5;
+  const cs = S * 0.11;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // 체크 그림자
+  ctx.shadowColor = 'rgba(0,0,0,0.25)';
+  ctx.shadowBlur = 10;
+  ctx.shadowOffsetY = 4;
+
+  ctx.beginPath();
+  ctx.moveTo(checkCX - cs * 0.62, checkCY + cs * 0.02);
+  ctx.lineTo(checkCX - cs * 0.1,  checkCY + cs * 0.55);
+  ctx.lineTo(checkCX + cs * 0.72, checkCY - cs * 0.5);
+  ctx.strokeStyle = '#34D399';   // 초록
+  ctx.lineWidth = S * 0.046;
+  ctx.stroke();
+
+  // 체크 하이라이트
+  ctx.shadowColor = 'transparent';
+  ctx.beginPath();
+  ctx.moveTo(checkCX - cs * 0.62, checkCY + cs * 0.02);
+  ctx.lineTo(checkCX - cs * 0.1,  checkCY + cs * 0.55);
+  ctx.lineTo(checkCX + cs * 0.72, checkCY - cs * 0.5);
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+  ctx.lineWidth = S * 0.015;
+  ctx.stroke();
+
+  ctx.restore();
+  ctx.restore(); // clip 해제
+}
+
+function save(id) {
+  const canvas = document.getElementById(id);
+  const a = document.createElement('a');
+  a.download = id === 'light' ? 'icon_light_600.png' : 'icon_dark_600.png';
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+drawIcon('light', false);
+drawIcon('dark', true);
+</script>
+</body>
+</html>
