@@ -184,23 +184,32 @@ def analyze():
     if not data.get("consent_verified"):
         return jsonify({"error": "개인정보 국외이전 동의가 필요해요."}), 403
 
-    image_base64 = data.get("image_base64")
+    # images_base64 (배열) 우선, 구버전 호환을 위해 image_base64 (단일)도 지원
+    images_base64 = data.get("images_base64")
+    if not images_base64:
+        single = data.get("image_base64")
+        if single:
+            images_base64 = [single]
+
     contract_type = data.get("contract_type", "lease")
 
-    if not image_base64:
+    if not images_base64 or len(images_base64) == 0:
         return jsonify({"error": "이미지 데이터가 없어요."}), 400
 
-    # base64 유효성 검사
-    try:
-        base64.b64decode(image_base64, validate=True)
-    except Exception:
-        return jsonify({"error": "이미지 형식을 확인해요."}), 400
+    if len(images_base64) > 20:
+        return jsonify({"error": "이미지는 최대 20장까지 분석할 수 있어요."}), 400
 
-    # 이미지 정규화 (JPEG 변환 + Claude API 5MB 제한 대응)
-    try:
-        image_base64 = normalize_image(image_base64)
-    except Exception:
-        return jsonify({"error": "이미지를 처리하지 못했어요. 다시 시도해요."}), 400
+    # base64 유효성 검사 + 이미지 정규화
+    normalized = []
+    for idx, img_b64 in enumerate(images_base64):
+        try:
+            base64.b64decode(img_b64, validate=True)
+        except Exception:
+            return jsonify({"error": f"{idx + 1}번째 이미지 형식을 확인해요."}), 400
+        try:
+            normalized.append(normalize_image(img_b64))
+        except Exception:
+            return jsonify({"error": f"{idx + 1}번째 이미지를 처리하지 못했어요. 다시 시도해요."}), 400
 
     # 프롬프트 로드
     try:
@@ -208,31 +217,30 @@ def analyze():
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
-    # Claude Vision API 호출 (이미지는 메모리에서만 처리)
+    # Claude Vision API 호출 — 이미지 전체를 하나의 메시지에 담아 전송
+    content = []
+    for i, img_b64 in enumerate(normalized):
+        if len(normalized) > 1:
+            content.append({"type": "text", "text": f"[{i + 1}페이지]"})
+        content.append({
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": "image/jpeg",
+                "data": img_b64,
+            },
+        })
+    content.append({
+        "type": "text",
+        "text": f"이 계약서({'총 ' + str(len(normalized)) + '페이지' if len(normalized) > 1 else ''})를 분석해주세요.",
+    })
+
     try:
         response = client.messages.create(
             model=CLAUDE_MODEL,
             max_tokens=4096,
             system=system_prompt,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/jpeg",
-                                "data": image_base64,
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": "이 계약서를 분석해주세요.",
-                        },
-                    ],
-                }
-            ],
+            messages=[{"role": "user", "content": content}],
         )
     except anthropic.APIError as e:
         return jsonify({"error": "분석 중 오류가 발생했어요. 잠시 후 다시 시도해요."}), 502
