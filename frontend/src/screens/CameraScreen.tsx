@@ -1,10 +1,22 @@
 /**
  * 촬영/갤러리 선택 화면
- * 계약서 종류 선택 → 이미지 선택 → base64 변환 → 분석 화면으로 이동
+ * 계약서 종류 선택 → 이미지 선택(여러 장 가능) → 분석 화면으로 이동
+ *
+ * - 카메라: 1장씩 촬영 후 "추가 촬영" / "분석 시작" 선택
+ * - 갤러리: 최대 10장 한번에 선택
  */
 
-import React from 'react';
-import { View, StyleSheet, SafeAreaView, Alert, TouchableOpacity, Text } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  SafeAreaView,
+  Alert,
+  TouchableOpacity,
+  Text,
+  ScrollView,
+  Image,
+} from 'react-native';
 import { Txt, Button } from '@toss/tds-react-native';
 import {
   openCamera,
@@ -21,52 +33,91 @@ const CONTRACT_TYPES: { type: ContractType; icon: string }[] = [
   { type: 'general', icon: '📄' },
 ];
 
+const MAX_IMAGES = 10;
+
 interface Props {
   contractType: ContractType;
   onContractTypeChange: (type: ContractType) => void;
-  onImageSelected: (imageBase64: string, type: ContractType) => void;
+  onImagesSelected: (imagesBase64: string[], type: ContractType) => void;
 }
 
-export default function CameraScreen({ contractType, onContractTypeChange, onImageSelected }: Props) {
+export default function CameraScreen({ contractType, onContractTypeChange, onImagesSelected }: Props) {
+  const [images, setImages] = useState<string[]>([]);
+
   function extractBase64(dataUri: string): string {
     const comma = dataUri.indexOf(',');
     return comma >= 0 ? dataUri.slice(comma + 1) : dataUri;
   }
 
-  function confirmAndProceed(base64: string) {
+  function handleAnalyze(imgs: string[]) {
     const label = CONTRACT_TYPE_LABELS[contractType];
     Alert.alert(
       '계약서 확인',
-      `선택한 유형: ${label}\n이 유형으로 분석을 시작할까요?`,
+      `선택한 유형: ${label}\n총 ${imgs.length}장 분석을 시작할까요?`,
       [
         { text: '아니요, 다시 선택', style: 'cancel' },
-        { text: '맞아요', onPress: () => onImageSelected(base64, contractType) },
+        { text: '맞아요', onPress: () => onImagesSelected(imgs, contractType) },
       ],
     );
   }
 
-  async function handleCamera() {
+  async function shootAndAdd(currentImages: string[]) {
+    if (currentImages.length >= MAX_IMAGES) {
+      Alert.alert('최대 장수 초과', `이미지는 최대 ${MAX_IMAGES}장까지 추가할 수 있어요.`);
+      return;
+    }
     try {
       const response = await openCamera({ base64: true });
-      confirmAndProceed(extractBase64(response.dataUri));
+      const b64 = extractBase64(response.dataUri);
+      const next = [...currentImages, b64];
+      setImages(next);
+
+      Alert.alert(
+        `${next.length}장 추가됨`,
+        next.length < MAX_IMAGES ? '추가로 촬영하거나 분석을 시작하세요.' : `최대 ${MAX_IMAGES}장에 도달했어요.`,
+        [
+          ...(next.length < MAX_IMAGES
+            ? [{ text: '추가 촬영', onPress: () => shootAndAdd(next) }]
+            : []),
+          { text: '분석 시작', onPress: () => handleAnalyze(next) },
+        ],
+      );
     } catch (e) {
       if (e instanceof OpenCameraPermissionError) {
-        Alert.alert('카메라 권한이 필요해요', '카메라 권한을 허용하면 촬영할 수 있어요.');
+        Alert.alert('카메라 권한�� 필요해요', '카메라 권한을 허용하면 촬영할 �� 있어요.');
+      } else {
+        console.error('Camera error:', e);
+        Alert.alert('오류 발생', '카메라를 열지 못했어요. 다시 ��도해주세요.');
       }
     }
   }
 
+  function handleCamera() {
+    shootAndAdd(images);
+  }
+
   async function handleGallery() {
     try {
-      const photos = await fetchAlbumPhotos({ maxCount: 1, base64: true });
-      if (photos.length > 0) {
-        confirmAndProceed(extractBase64(photos[0].dataUri));
-      }
+      const remaining = MAX_IMAGES - images.length;
+      const photos = await fetchAlbumPhotos({ maxCount: remaining, base64: true });
+      if (photos.length === 0) return;
+
+      const added = photos.map(p => extractBase64(p.dataUri));
+      const next = [...images, ...added];
+      setImages(next);
+      handleAnalyze(next);
     } catch (e) {
       if (e instanceof FetchAlbumPhotosPermissionError) {
         Alert.alert('사진 접근이 필요해요', '사진 접근 권한을 허용하면 갤러리를 사용할 수 있어요.');
+      } else {
+        console.error('Gallery error:', e);
+        Alert.alert('오류 발생', '갤러리를 열지 못했어요. 다시 시도해주세요.');
       }
     }
+  }
+
+  function removeImage(index: number) {
+    setImages(prev => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -100,22 +151,52 @@ export default function CameraScreen({ contractType, onContractTypeChange, onIma
         </View>
       </View>
 
+      {/* 중간: 추가된 이미지 썸네일 목록 */}
+      {images.length > 0 && (
+        <View style={styles.thumbnailSection}>
+          <Txt typography="st11" color="#6B7684" style={styles.sectionLabel}>
+            추가된 페이지 ({images.length}/{MAX_IMAGES})
+          </Txt>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbnailScroll}>
+            {images.map((b64, i) => (
+              <View key={i} style={styles.thumbnailWrapper}>
+                <Image
+                  source={{ uri: `data:image/jpeg;base64,${b64}` }}
+                  style={styles.thumbnail}
+                />
+                <TouchableOpacity style={styles.removeBtn} onPress={() => removeImage(i)}>
+                  <Text style={styles.removeBtnText}>✕</Text>
+                </TouchableOpacity>
+                <Text style={styles.thumbnailLabel}>{i + 1}p</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* 하단: 촬영 안내 + 버튼 */}
       <View style={styles.bottomSection}>
         <Txt typography="t3" fontWeight="bold" color="#191F28" style={styles.title}>
-          계약서를 촬영해요
+          {images.length === 0 ? '계약서를 촬영해요' : '페이지를 추가하거나 분석을 시작해요'}
         </Txt>
         <Txt typography="st11" color="#6B7684" style={styles.subtitle}>
-          {'계약서 전체가 잘 보이도록 밝은 곳에서 촬영해요.\n주민번호·계좌번호는 자동으로 가려져요.'}
+          {images.length === 0
+            ? '계약서 전체가 잘 보이도록 밝은 곳에서 촬영해요.\n주민번호·계좌번호는 자동으로 가려져요.'
+            : `여러 장이면 페이지 순서대로 추가해요. (최대 ${MAX_IMAGES}장)`}
         </Txt>
 
         <View style={styles.buttonGroup}>
           <Button display="block" onPress={handleCamera}>
-            📷  카메라로 촬영
+            {images.length === 0 ? '📷  카메라로 촬영' : '📷  페이지 추가 촬영'}
           </Button>
           <Button display="block" type="light" onPress={handleGallery}>
             갤러리에서 선택
           </Button>
+          {images.length > 0 && (
+            <Button display="block" type="primary" onPress={() => handleAnalyze(images)}>
+              분석 시작 ({images.length}장)
+            </Button>
+          )}
         </View>
 
         <Txt typography="t7" color="#6B7684" textAlign="center" style={styles.tip}>
@@ -133,6 +214,45 @@ const styles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 8,
   },
+  thumbnailSection: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  thumbnailScroll: {
+    marginTop: 8,
+  },
+  thumbnailWrapper: {
+    marginRight: 10,
+    position: 'relative',
+    alignItems: 'center',
+  },
+  thumbnail: {
+    width: 72,
+    height: 96,
+    borderRadius: 8,
+    backgroundColor: '#E5E8EB',
+  },
+  removeBtn: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#FF4D4F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  thumbnailLabel: {
+    marginTop: 4,
+    fontSize: 11,
+    color: '#6B7684',
+  },
   bottomSection: {
     flex: 1,
     paddingHorizontal: 24,
@@ -140,13 +260,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   sectionLabel: { marginBottom: 12 },
-  typeGrid: {
-    gap: 10,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  typeGrid: { gap: 10 },
+  typeRow: { flexDirection: 'row', gap: 10 },
   typeChip: {
     flex: 1,
     aspectRatio: 1,

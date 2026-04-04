@@ -30,5 +30,5 @@ export function maskSensitiveText(text: string): string {
  * 결과 화면에서 "마스킹 완료" UI 피드백에 사용합니다.
  */
 export function hasSensitiveData(text: string): boolean {
-  return RRN_PATTERN.test(text) || ACCOUNT_PATTERN.test(text);
+  return /\d{6}-\d{7}/.test(text) || /\d{3,4}-\d{4,6}-\d{4,6}(-\d{2,3})?/.test(text);
 }

@@ -13,6 +13,7 @@ import io
 import re
 import json
 import base64
+import logging
 import anthropic
 import pytesseract
 from flask import Flask, request, jsonify
@@ -26,10 +27,17 @@ load_dotenv(_root)
 load_dotenv(override=True)
 
 app = Flask(__name__)
-CORS(app)
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB 제한
+
+# CORS — 허용 도메인 제한 (환경변수로 관리)
+allowed_origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+CORS(app, origins=allowed_origins if allowed_origins else "*")
 
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5-20251001")
-client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"], timeout=90.0)
+
+# 이미지 폭탄 방지
+Image.MAX_IMAGE_PIXELS = 50_000_000
 
 PROMPTS_DIR = os.path.join(os.path.dirname(__file__), "prompts")
 
@@ -49,8 +57,9 @@ def blur_sensitive_regions(img: Image.Image) -> Image.Image:
         ocr_data = pytesseract.image_to_data(
             img, lang='kor', output_type=pytesseract.Output.DICT
         )
-    except Exception:
-        # Tesseract 오류 시 원본 반환 (분석 흐름 유지)
+    except Exception as e:
+        # Tesseract 오류 시 원본 반환 (분석 흐�� 유지) — 단, 반드시 로깅
+        logging.warning(f"Tesseract OCR 실패 — 개인정보 블러 건너뜀: {e}")
         return img
 
     n = len(ocr_data['text'])
@@ -159,12 +168,16 @@ def normalize_image(image_base64: str) -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
+ALLOWED_CONTRACT_TYPES = {"lease", "employment", "freelance", "general"}
+
 def load_prompt(contract_type: str) -> str:
+    if contract_type not in ALLOWED_CONTRACT_TYPES:
+        raise ValueError(f"지원하지 않는 계약서 유형: {contract_type}")
     if not os.path.isdir(PROMPTS_DIR):
         raise FileNotFoundError(f"프롬프트 디렉토리 없음: {PROMPTS_DIR}")
     path = os.path.join(PROMPTS_DIR, f"{contract_type}.txt")
     if not os.path.exists(path):
-        raise ValueError(f"지원하지 않는 계약서 유형: {contract_type}")
+        raise ValueError(f"프롬프트 파일 없음: {contract_type}")
     with open(path, encoding="utf-8") as f:
         content = f.read().strip()
     if not content:
@@ -245,18 +258,44 @@ def analyze():
             system=system_prompt,
             messages=[{"role": "user", "content": content}],
         )
+    except anthropic.AuthenticationError:
+        logging.error("Anthropic API 키 인증 실패")
+        return jsonify({"error": "서비스 인증 오류가 발생했어요. 관리자에게 문의해주세요."}), 500
+    except anthropic.RateLimitError:
+        logging.warning("Anthropic API 요청 한도 초���")
+        return jsonify({"error": "요청이 너무 많아요. 잠시 후 다시 시도���주세요."}), 429
+    except anthropic.APITimeoutError:
+        logging.warning("Anthropic API 타임아웃")
+        return jsonify({"error": "분석 시간이 초과되었어요. 잠시 후 다시 시도해주세요."}), 504
     except anthropic.APIError as e:
-        return jsonify({"error": "분석 중 오류가 발생했어요. 잠시 후 다시 시도해요."}), 502
+        logging.error(f"Anthropic API 에러: {e}")
+        return jsonify({"error": "분석 중 오류�� 발생했어요. 잠시 후 다시 시도해요."}), 502
 
-    # 응답 파싱
+    # 응답 구조 검증
+    if not response.content or not hasattr(response.content[0], 'text'):
+        logging.error(f"Claude 응답 구조 이상: stop_reason={response.stop_reason}")
+        return jsonify({"error": "분석 결과가 비어있어요. 다시 시도해주세요."}), 500
+
     raw_text = response.content[0].text.strip()
+
+    if response.stop_reason == "max_tokens":
+        logging.warning("Claude 응답이 max_tokens로 잘림")
+
+    # JSON 파싱
     try:
-        # { ... } 범위 직접 추출 — 코드블록/설명 텍스트 등 노이즈 제거
         start = raw_text.index('{')
         end = raw_text.rindex('}') + 1
         result = json.loads(raw_text[start:end])
     except (ValueError, json.JSONDecodeError):
-        return jsonify({"error": "분석 결과를 처리하지 못했어요. 다시 시도해요."}), 500
+        logging.error(f"Claude JSON 파싱 실패: {raw_text[:500]}")
+        return jsonify({"error": "분석 ���과를 처리하지 못했어요. ���시 시도해요."}), 500
+
+    # 필수 필드 검증
+    required_fields = ['summary', 'risks', 'checklist']
+    for field in required_fields:
+        if field not in result:
+            logging.error(f"Claude 응답에 '{field}' ��드 누락: {list(result.keys())}")
+            return jsonify({"error": "분석 결과 형식이 올바르지 않아요. 다시 시도해주세요."}), 500
 
     # 이미지 데이터는 응답에 포함하지 않음 (메모리에서 폐기됨)
     return jsonify(result)

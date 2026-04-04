@@ -29,9 +29,14 @@ export async function saveConsent(): Promise<void> {
 export async function getConsent(): Promise<ConsentRecord | null> {
   const raw = await Storage.getItem(KEYS.CONSENT);
   if (!raw) return null;
-  const record: ConsentRecord = JSON.parse(raw);
-  if (record.version !== CONSENT_VERSION) return null;
-  return record;
+  try {
+    const record: ConsentRecord = JSON.parse(raw);
+    if (record.version !== CONSENT_VERSION) return null;
+    return record;
+  } catch {
+    await Storage.removeItem(KEYS.CONSENT);
+    return null;
+  }
 }
 
 // ── 분석 이력 ──────────────────────────────────────────────
@@ -39,7 +44,12 @@ export async function getConsent(): Promise<ConsentRecord | null> {
 export async function getSessions(): Promise<AnalysisSession[]> {
   const raw = await Storage.getItem(KEYS.SESSIONS);
   if (!raw) return [];
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    await Storage.removeItem(KEYS.SESSIONS);
+    return [];
+  }
 }
 
 export async function saveSession(session: AnalysisSession): Promise<void> {
@@ -65,8 +75,12 @@ export async function getDailyUsage(): Promise<DailyUsage> {
   const today = todayStr();
 
   if (raw) {
-    const usage: DailyUsage = JSON.parse(raw);
-    if (usage.date === today) return usage;
+    try {
+      const usage: DailyUsage = JSON.parse(raw);
+      if (usage.date === today) return usage;
+    } catch {
+      await Storage.removeItem(KEYS.DAILY_USAGE);
+    }
   }
 
   return { date: today, count: 0, freeQuota: 999 }; // Phase 1: 무제한

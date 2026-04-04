@@ -10,24 +10,42 @@ const API_BASE_URL = __DEV__
   ? 'http://localhost:5001'
   : 'https://web-production-0999d.up.railway.app';
 
+const API_TIMEOUT_MS = 90_000; // 90초
+
 export async function analyzeContract(
-  imageBase64: string,
+  imagesBase64: string[],
   contractType: ContractType = 'lease'
 ): Promise<AnalysisResult> {
-  const response = await fetch(`${API_BASE_URL}/analyze`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      image_base64: imageBase64,
-      contract_type: contractType,
-      consent_verified: true, // storage.ts의 getConsent()로 확인 후 호출
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || '서버 오류가 발생했어요.');
+  try {
+    const response = await fetch(`${API_BASE_URL}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        images_base64: imagesBase64,
+        contract_type: contractType,
+        consent_verified: true,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || '서버 오류가 발생했어요.');
+    }
+
+    const result = await response.json().catch(() => {
+      throw new Error('서버 응답을 처리하지 못했어요. 다시 시도해주세요.');
+    });
+    return result;
+  } catch (e: any) {
+    if (e.name === 'AbortError') {
+      throw new Error('분석 시간이 초과되었어요. 사진을 더 선명하게 찍어 다시 시도해주세요.');
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeout);
   }
-
-  return response.json();
 }
